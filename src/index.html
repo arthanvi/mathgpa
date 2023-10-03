@@ -7,6 +7,70 @@
   <link href="gpastyle.css" media="all" rel="stylesheet">
  <script type="text/javascript" src="qa_integration.js"></script>
  <script type="text/javascript" src="jquery.js"></script>
+
+ <style>
+  /* Popup container - can be anything you want */
+
+  .popup {
+    position: sticky;
+    top: 50%;
+    left: 0%;
+    padding: 10px;
+    display: inline-block;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    width: 100%;
+  }
+  
+  /* The actual popup */
+  .popup .popuptext {
+    visibility: hidden;
+    width: 80%;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 10%;
+
+  }
+  
+  /* Popup arrow 
+  .popup .popuptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+  }
+  */
+  /* Toggle this class - hide and show the popup */
+  .popup .show {
+    visibility: visible;
+    -webkit-animation: fadeIn 1s;
+    animation: fadeIn 1s;
+  }
+  
+  /* Add animation (fade in the popup) */
+  @-webkit-keyframes fadeIn {
+    from {opacity: 0;} 
+    to {opacity: 1;}
+  }
+  
+  @keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity:1 ;}
+  }
+  </style>
 </head>
 <body>
   <!-- Output will be displayed here -->
@@ -14,7 +78,7 @@
   <div>
     <div style="width: 100%;height: auto;background-color: #91C8E4;text-align: left; padding: '+cardPadding+'px;">
       <p style="font-size:x-large;font-weight:bold">mathGPA(Gamified Practice and Assessment Tool)<sup>beta</sup></p>
-      <h3>Practice Function : <select id="operator"><option value="SUM">SUM</option><option value="MINUS">MINUS</option><option value="MULTIPLY">MULTIPLY</option></select> </h3>
+      <h3>Practice Function : <select id="operator"><option value="SUM">SUM</option><option value="MINUS">MINUS</option><option value="MULTIPLY">MULTIPLY</option><option value="DIVIDE">DIVIDE</option></select> </h3>
       <h3>Practice Number Range : from <input type="number" id="firstNumber" value="1" min="0" max="100" step="1" placeholder="Start Number"> to <input type="number" id="secondNumber" value="5" min="5" max="150" step="1" placeholder="End Number"> </h3>
 	  <h3>Your Class : <input type="number" id="classNumber" value="1" min="-2" max="15" step="1" placeholder="Class Number"> | Your Role Number : <input type="number" id="rollNumber" value="1" min="1" max="150" step="1" placeholder="Roll Number"> <button onclick="createPractice();">Click here to reload new Practice set</button></h3>
 	  <p>Create unlimited practice sets for different grades by changing above parameters.<br></p>
@@ -23,7 +87,13 @@
   </div>
 
   <hr>
+  <div class="popup" onclick="closeResult()">
+    <span class="popuptext" id="myPopup">A Simple Popup! this is the answer text to display<br><button id="closeButton" onsubmit="closeResult()">hello</button></span>
+  </div> 
   <div id="output" class="row"><div>
+    
+
+  
 
   <script>
 // Variables for storing user preferences and processed data
@@ -56,6 +126,8 @@ var wrontAnsCount = 0;
     var finalArrayBeforePrinting = [];
 
 var keyDownCount = 0;
+
+var popup = document.getElementById("myPopup");
 
     // Step 0.1 - Check all URL variables and set them in the JavaScript variables
     const urlParams = new URLSearchParams(window.location.search);
@@ -103,7 +175,7 @@ cardHeight = "100%";
     function getUserValues() {
       startNumber = parseInt(document.getElementById("firstNumber").value);
       endNumber = parseInt(document.getElementById("secondNumber").value);
-	  userClass = parseInt(document.getElementById("classNumber").value);
+	    userClass = parseInt(document.getElementById("classNumber").value);
       userRollNumber = parseInt(document.getElementById("rollNumber").value);
       functionType = document.getElementById("operator").value;
       displayResultCount = 10;
@@ -154,6 +226,13 @@ cardHeight = "100%";
           else if (functionType == "MULTIPLY") {
             var prod = i * j;
             unitString = i + "," + j + "," + prod + ",x";
+            tempArray.push(unitString);
+          }
+          else if (functionType == "DIVIDE") {
+            var multiple = i * j;
+            var divideBy = i;
+            var divideAns = j
+            unitString = multiple + "," + divideBy + "," + divideAns + ",&divide;";
             tempArray.push(unitString);
           }
         }
@@ -347,15 +426,35 @@ function autoTab(tuktuk) { //working
 		var urlll = "updateGPAStats.php?responseString=MATHGPA2&rightOrWrongString="+myQuizObj.rightOrWrong+"&timePerQuestionString=MATHGPA3&quizId=1000008&correctAnswers="+correctAnsCount+"&quizStatus="+TAG_QUIZ_COMPLETE+"&userId="+gpaUserId+"&sTime="+formatDate(myQuizObj.startTime)+"&eTime="+formatDate(myQuizObj.endTime)+"&quizDuration="+quizDuration+"&gpaCriteria="+gpaCriteria+"&quizSize="+quizSize;
 		
 		console.log(urlll);
-		$.ajax({url:urlll ,async:false,success:function(result){if(result=="Inserted"){console.log("Record Submitted");}},error:function(result) {console.log("Error in Submitting");} });
+		$.ajax({
+      url:urlll ,async:false,success:function(result){
+        if(result=="Inserted"){
+          //alert("You Got "+correctAnsCount+" Correct Answers out of "+quizSize+" Questions.");
+          console.log("Record Submitted");
+        }
+      },error:function(result) {console.log("Error in Submitting");} 
+    });
 		
-		
-		alert("You Got "+correctAnsCount+" Correct Answers out of "+quizSize+" Questions.");
+		//alert("You Got "+correctAnsCount+" Correct Answers out of "+quizSize+" Questions.");
+    //showResult();
+    showResult(correctAnsCount,quizSize)
 
 	}
     return false;
 }
 
+function showResult(correctAnsCount,quizSize) {
+  //var popup = document.getElementById("myPopup");
+  var btnText = '<br><br><button id="closeButton" onsubmit="closeResult()">hello</button>';
+  popup.innerHTML = "You Got "+correctAnsCount+" Correct Answers out of "+quizSize+" Questions."+btnText;
+  popup.classList.toggle("show");
+  //document.getElementById("closeButton").focus();
+}
+
+function closeResult() {
+  //var popup = document.getElementById("myPopup");
+  popup.classList.toggle("show");
+}
     //-------------------------common functions---------------------------------
     // Method to randomly shuffle array elements
     // Inputs: arrayToShuffle - the array to be shuffled
