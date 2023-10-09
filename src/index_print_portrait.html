@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MathGPA | Printable Cards | InProgress</title>
+  <link href="gpa_print_style.css" media="all" rel="stylesheet">
+ <script>
+    function allowDrop(ev)
+    {
+    ev.preventDefault();
+    }
+    function drag(ev)
+    {
+    ev.dataTransfer.setData("Text",ev.target.id);
+    }
+    function drop(ev)
+    {
+    	ev.preventDefault();
+    	var data=ev.dataTransfer.getData("Text");
+    	console.log(data);
+    	var el = document.getElementById(data);
+    	el.parentNode.removeChild(el);
+    }
+  </script>
+   <style>
+ .carddiv_x  {
+  background-image: url("bg/mathgpa.png");
+  background-size: contain;
+}
+ .carddiv  {
+  background-size: contain;
+}
+ </style>
+</head>
+<body>
+  <!-- Output will be displayed here -->
+  <div id="output_old"></div>
+
+  <hr>
+
+  <div id="output" class="row"><div>
+
+  <script>
+// Variables for storing user preferences and processed data
+//http://localhost/mathgpa/index.html?start=0&end=10&operation=SUM&randomize=YES&style=BIGANS&printOrPlay=PRINT&resultLimit=10
+//http://localhost/mathgpa/index_print.html?start=0&end=10&operation=MINUS&randomize=YES&style=BIGANS&printOrPlay=PRINT&resultLimit=24&cColor=orange&mgpaTxt=MathGPA%20|%20L02&cardbg=mathgpa2.png&quote=Save%20Environment
+    var startNumber;  
+    var endNumber;
+    var functionType;
+    var isRandomDisplay="YES";
+    var displayStyle = "BIGBOX";
+    var isNegativeAnswerAllowed = true; //not used yet
+    var printOrPlay = "PRINT";
+    var displayIntro = "YES";
+    var displayResultCount = 10;
+
+//visual elements var
+var cardWidth = 333;
+var cardHeight = 227;
+var cardColor = "lightblue";
+var cardPadding = 16;
+var mgpaTxt = "mathGPA | L01";
+var cardbg = "bg/mathgpa.png";
+var quote = "";
+
+//play tracking
+var correctAnsCount = 0;
+var wrontAnsCount = 0;
+
+    // Arrays to hold processed and final data
+    var processedArray = [];
+    var finalArrayBeforePrinting = [];
+
+var keyDownCount = 0;
+
+    // Step 0.1 - Check all URL variables and set them in the JavaScript variables
+    const urlParams = new URLSearchParams(window.location.search);
+    startNumber = parseInt(urlParams.get('start'));
+    endNumber = parseInt(urlParams.get('end'));
+    functionType = urlParams.get('operation');
+    isRandomDisplay = urlParams.get('randomize');
+    //displayStyle = urlParams.get('style');
+    //printOrPlay = urlParams.get('printOrPlay');
+    displayResultCount = urlParams.get('resultLimit');
+    displayIntro = urlParams.get('dIntro');
+    cardColor = urlParams.get('cColor');
+	mgpaTxt = urlParams.get('mgpaTxt');
+	cardbg = "bg/"+urlParams.get('cardbg');
+	quote = urlParams.get('quote');
+	
+	if(mgpaTxt == null)
+		mgpaTxt = "mathGPA";
+	if(cardbg == "bg/null")
+		cardbg = "bg/mathgpa.png";
+	if(quote == null)
+		quote = "";	
+
+//visual elements var //rough test
+/*cardWidth = urlParams.get('cardWidth');
+if(cardWidth == "FULL"){
+cardWidth = "100%";
+cardHeight = "100%";
+}*/
+
+    // Step 0.2 - Validation to be implemented if proper values are not passed in the URL
+
+    // Step 1 - Get the processed answer Array
+    processedArray = getProcessedAnswerArray(startNumber, endNumber, functionType, isNegativeAnswerAllowed);
+
+    // Step 2 - Check if we need to do random display; if yes, randomize the array before display
+    finalArrayBeforePrinting = prepareFinalArrayBeforePrinting(Array.from(processedArray));
+
+    // Step 3 - Display on screen based on the option (Print or Play) and display result count
+    // Step 3.1 - If Print option is chosen
+    if(printOrPlay == "PRINT")
+      displayOnlyForView(finalArrayBeforePrinting, displayStyle, displayResultCount);
+    else
+      displayForPlay(finalArrayBeforePrinting, displayStyle, displayResultCount);
+
+    //change UI param is criteria is passed in URL
+      //setParamsInDisplay(); 
+
+    function createPractice() {
+      getUserValues();
+      refreshPracticeSet(startNumber, endNumber, functionType, displayResultCount)
+    }
+      
+    function getUserValues() {
+      startNumber = parseInt(document.getElementById("firstNumber").value);
+      endNumber = parseInt(document.getElementById("secondNumber").value);
+      functionType = document.getElementById("operator").value;
+      displayResultCount = 10;
+      displayIntro="YES";
+      isRandomDisplay = "YES";
+    }
+      
+    function refreshPracticeSet(startNumber, endNumber, functionType, displayResultCount) {
+      displayIntro="YES";
+      isRandomDisplay = "YES";
+      //step 1 - get values of all compinations and results
+      processedArray = getProcessedAnswerArray(startNumber, endNumber, functionType, isNegativeAnswerAllowed);
+
+      // Step 2 - Check if we need to do random display; if yes, randomize the array before display
+      finalArrayBeforePrinting = prepareFinalArrayBeforePrinting(Array.from(processedArray));
+
+      // Step 3 - Display on screen based on the option (Print or Play) and display result count
+      // Step 3.1 - If Print option is chosen
+      if(printOrPlay == "PRINT")
+        displayOnlyForView(finalArrayBeforePrinting, displayStyle, displayResultCount);
+      else
+        displayForPlay(finalArrayBeforePrinting, displayStyle, displayResultCount); 
+
+    }
+
+    // This function will simply take start and end numbers and based on the function,
+    // it will get the result and each number will be saved as an array (e.g., 4,6,10 or ???).
+    // Inputs: startNumber, endNumber, functionType, isNegativeAnswerAllowed
+    // Output: processedArray
+    function getProcessedAnswerArray(startNumber, endNumber, functionType, isNegativeAnswerAllowed) {
+      var tempArray = [];
+      var unitString;
+
+      for (let i = startNumber; i <= endNumber; i++) {
+        for (let j = startNumber; j <= endNumber; j++) {
+          if (functionType == "SUM") {
+            var sum = i + j;
+            unitString = i + "," + j + "," + sum + ",+";
+            tempArray.push(unitString);
+          }
+          else if (functionType == "MINUS" && i>=j)  {
+            var diff = i - j;
+            unitString = i + "," + j + "," + diff + ",-";
+            tempArray.push(unitString);
+          }
+          else if (functionType == "MULTIPLY") {
+            var prod = i * j;
+            unitString = i + "," + j + "," + prod + ",x";
+            tempArray.push(unitString);
+          }
+        }
+      }
+      return tempArray;
+    }
+
+    // TBD method description based on criteria to randomize
+    // This function prepares the final array before printing, taking into consideration the randomization criteria.
+    // Inputs: rawArray - the processed array
+    // Output: A final array after possible randomization
+    function prepareFinalArrayBeforePrinting(rawArray) {
+      var tempArray = [];
+      tempArray = rawArray;
+
+      if (isRandomDisplay == "YES") {
+        return shuffleArrayMembers(tempArray);
+      }
+      else {
+        return tempArray;
+      }
+    }
+
+    // Method documentation TBD
+    // This function displays the output for view-only purposes based on different styles.
+    // Inputs: arrayToPrint - the final array to display, Style - the display style, displayResultCount - number of results to display
+    function displayOnlyForView(arrayToPrint, Style, displayResultCount) {
+      // Let's set default values
+      var fontKaSize = 30;
+      var ansDisplay = true;
+
+      // Set values based on the style chosen
+      if (Style == "SMALLANS") {
+        var fontKaSize = 10;
+        var ansDisplay = true;
+      }
+      else if (Style == "SMALLBOX") {
+        var fontKaSize = 10;
+        var ansDisplay = false;
+      }
+      else if (Style == "BIGANS") {
+        var fontKaSize = 30;
+        var ansDisplay = true;
+      }
+      else if (Style == "BIGBOX") {
+        var fontKaSize = 30;
+        var ansDisplay = false;
+      }
+
+      var text2print = "";
+      var displayLimit = arrayToPrint.length;
+
+      // Set the limit for the number of results to display
+      if (parseInt(displayResultCount) >= 1 && parseInt(displayResultCount) < arrayToPrint.length)
+        displayLimit = parseInt(displayResultCount);
+        console.log("testing - "+functionType);
+
+      if(displayIntro == "YES") {
+        //text2print += '<div><div style="width: 100%;height: auto;background-color: #91C8E4;text-align: left; padding: '+cardPadding+'px;"<h2>[ Practice Function : <b>'+functionType+'</b> ] [ Number Range : from <b>'+startNumber+'</b> to <b>'+endNumber+'</b> ]</h2></div></div><hr>';
+
+      }
+
+      for (let index = 0; index < displayLimit; index++) {
+        var element = arrayToPrint[index];
+        var elementArray = element.split(",");
+        var ansString = elementArray[2];
+
+        // If ansDisplay is set to false, display underscores instead of the actual answer
+        if (ansDisplay == false)
+          ansString = "___";
+
+        // Build the text to print based on the chosen style
+        //text2print v1
+
+        //text2print v4 horizontal
+        text2print += '<div class="column" id="'+index+'" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)"><div class="carddiv" style="width: '+cardHeight+'px;height: '+cardWidth+'px;background-color: '+cardColor+';text-align: center; padding: '+cardPadding+'px;background-image: url(\''+cardbg+'\');"><table style="margin-left:auto;margin-right: auto; align-content: center;width:90%;max-width: 600px;"><tr style="font-size:64px;"><td></td><td colspan="2">'+elementArray[0]+'</td></tr><tr style="font-size:64px;"><td>'+elementArray[3]+'</td><td colspan="2">'+elementArray[1]+'</td></tr><tr><td colspan="3"><input id="ansText'+index+'" type="number" onfocus="gpaCheck('+elementArray[2]+',this);" onclick="gpaCheck('+elementArray[2]+',this);" placeholder="" style="width: 100%;height:40%;border: 1px solid black;font-size:100px; text-align:center;"></td></tr><tr><td colspan="2" style="font-size:12px; font-style: italic; text-align: left;font-family:  Caveat, cursive;">'+quote+'</td><td colspan="1" style="font-size:12px; text-align: right;font-family: Poppins, sans-serif;;">'+mgpaTxt+'</td></tr></table></div></div>';
+      }
+
+      // Display the output on the screen
+      document.getElementById("output").innerHTML = "";
+      document.getElementById("output").innerHTML = text2print;
+    }
+
+    // TBD method description
+    // This function displays the output for play purposes.
+    // Inputs: finalArrayBeforePrinting - the final array to display, displayStyle - the display style, displayResultCount - number of results to display
+    function displayForPlay(finalArrayBeforePrinting, displayStyle, displayResultCount) {
+      console.log("TBD for Play");
+    }
+
+//------------------------play computation functions---------------------
+function gpaCheck(ansValue,el) {
+        //var gpaCheck = document.getElementById("ansText");
+console.log("in here");
+        el.addEventListener("keydown", function (e) {
+            if (e.code === "Enter") {  //checks whether the pressed key is "Enter"
+keyDownCount++;
+validateAnswer(ansValue, e);
+var element = e.target;
+autoTab(e.target.id);
+
+/*var element = e.target;
+var userAns = e.target.value;
+var elementId = e.target.id;
+console.log("got - " + elementId);
+                var correctAnswer = validateAnswer(ansValue, userAns);
+document.getElementById(elementId).disabled = true;
+document.getElementById(elementId).readonly = true;
+if(correctAnswer == true) {
+console.log("in here too write");
+//document.getElementById(elementId).disabled = true;
+//document.getElementById(elementId).readonly = true;
+document.getElementById(elementId).style.backgroundColor = "lightgreen";
+}
+else {
+console.log("in here too wrong");
+document.getElementById(elementId).style.backgroundColor = "orange";
+}
+*/
+}
+        });
+    }
+   
+//working
+function validateAnswer(ansValue, ela) { //working
+//var element = e.target;
+var userAns = ela.target.value;
+var elementId = ela.target.id;
+console.log("got - " + elementId);
+var isAnswerCorrect = (parseFloat(ansValue) == parseFloat(userAns)) ? true : false;
+                //var isAnswerCorrect = isCorrect(ansValue, userAns);
+document.getElementById(elementId).disabled = true;
+document.getElementById(elementId).readonly = true;
+if(isAnswerCorrect == true) {
+document.getElementById(elementId).style.backgroundColor = "lightgreen";
+}
+else {
+document.getElementById(elementId).style.backgroundColor = "orange";
+}
+}
+//working ...this is to automatically tab to next input element
+function autoTab(tuktuk) { //working
+
+var nextInputId = tuktuk.substring(0, 7)+(parseInt(tuktuk.substring(7))+1);
+var nextElem = document.getElementById(nextInputId);
+//console.log("what is - "+nextInputId);
+nextElem.focus(); //working
+        return false;
+}
+
+    //-------------------------common functions---------------------------------
+    // Method to randomly shuffle array elements
+    // Inputs: arrayToShuffle - the array to be shuffled
+    // Output: The shuffled array
+    function shuffleArrayMembers(arrayToShuffle) {
+      let currentIndex = arrayToShuffle.length,  randomIndex;
+
+      // While there remain elements to shuffle.
+      while (currentIndex != 0) {
+        // Pick a remaining element.
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+
+        // And swap it with the current element.
+        [arrayToShuffle[currentIndex], arrayToShuffle[randomIndex]] = [arrayToShuffle[randomIndex], arrayToShuffle[currentIndex]];
+      }
+      return arrayToShuffle;
+    }
+
+    function setParamsInDisplay() {    
+      let selectElement = document.getElementById("operator");
+      let startNumberElement = document.getElementById("firstNumber");
+      let endNumberElement = document.getElementById("secondNumber");
+      
+      selectElement.value = functionType;
+      startNumberElement.value = startNumber;
+      endNumberElement.value = endNumber;
+    }
+  </script>
+  
+  
+</body>
+</html>
